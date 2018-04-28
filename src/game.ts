@@ -1,94 +1,162 @@
 import { addLight, addSkybox, loadMesh } from './game-utils'
-import { Engine } from 'babylonjs'
-import * as BABYLON from 'babylonjs'
+import {
+  Engine,
+  WebVRController,
+  Vector3,
+  Quaternion,
+  Scene,
+  Mesh,
+} from 'babylonjs'
 import * as GUI from 'babylonjs-gui'
 import BoardState from './BoardState'
+import addContent, { SceneContent } from './addContent'
 
-export class Game {
-  private _canvas: HTMLCanvasElement
-  private _engine: Engine
-  private _scene: BABYLON.Scene
-
-  private boardState: BoardState
-  private boardTransform: BABYLON.TransformNode
-
-  constructor(canvasElement: string) {
-    // Create canvas and engine
-    this._canvas = <HTMLCanvasElement>document.getElementById(canvasElement)
-    this._engine = new BABYLON.Engine(this._canvas, true)
-    this.boardState = new BoardState(
-      new BABYLON.Vector3(0, -0, 0),
-      new BABYLON.Vector3(-0.4, -0.1, -0.25)
-    )
-  }
-
-  createScene() {
-    var scene = new BABYLON.Scene(this._engine)
-    const helper = scene.createDefaultVRExperience()
-    ;(window as any).helper = helper
-
-    helper.onControllerMeshLoadedObservable.add(controller => {
-      this.boardState.registerController(controller)
-    })
-
-    var light = new BABYLON.HemisphericLight(
-      'light1',
-      new BABYLON.Vector3(0, 1, 0),
-      scene
-    )
-    light.intensity = 0.7
-
-    addLight(scene)
-    addSkybox('/assets/skybox/skybox', scene)
-
-    loadMesh('/assets/road/', 'CUPIC_ROAD.obj', scene).then(mesh => {
-      mesh.scaling.scaleInPlace(0.02)
-      const box = mesh.getBoundingInfo().boundingBox
-      console.log(box)
-
-      const insance = (mesh as BABYLON.Mesh).createInstance('1')
-      scene.addMesh(insance)
-
-      const insance2 = (mesh as BABYLON.Mesh).createInstance('2')
-      insance2.position.z += (box.maximumWorld.z - box.minimumWorld.z) * 0.02
-      scene.addMesh(insance2)
-    })
-    loadMesh('/assets/skateboard/', 'CUPIC_SKATEBOARD.obj', scene, true).then(
-      mesh => {
-        this.boardTransform = new BABYLON.TransformNode(
-          'transformNode-' + mesh.name
-        )
-
-        mesh.scaling.scaleInPlace(0.0045)
-        mesh.position.x -= 0.05
-        mesh.parent = this.boardTransform
-      }
-    )
-
-    this._scene = scene
-    return scene
-  }
-
-  animate() {
-    this._scene.registerBeforeRender(() => {
-      let deltaTime: number = 1 / this._engine.getFps()
-      this.moveGround(deltaTime)
-      if (this.boardTransform) {
-        if(!this.boardState.calibration) {
-          this.boardState.calibrate()
-        }
-        // console.log(this.board.position)
-
-        const { position, quat} = this.boardState.getBoardState()
-        this.boardTransform.position = position
-        this.boardTransform.rotationQuaternion = quat
-      }
-    })
-
-    this._engine.runRenderLoop(() => {
-      this._scene.render()
-    })
-  }
-
-  moveGround(deltaTime: number) {}
+interface ObjectState {
+  position: Vector3
+  quat: Quaternion
 }
+
+enum GameStage {
+  UNINITIALIZED,
+  LOADING,
+  CONTENT_READY,
+  VR_READY,
+}
+
+type GameState_Uninitialized = {
+  stage: GameStage.UNINITIALIZED
+}
+
+type GameState_Loading = {
+  stage: GameStage.LOADING
+  canvas: HTMLCanvasElement
+}
+
+type GameState_ContentReady = GameState_Loading & {
+  stage: GameStage.CONTENT_READY
+  sceneContent: SceneContent
+}
+
+type GameState_VRReady = GameState_ContentReady & {
+  stage: GameStage.VR_READY
+  boardController: WebVRController
+  handController: WebVRController
+  boardControlerInitialState: ObjectState
+}
+
+type GameState =
+  | GameState_Uninitialized
+  | GameState_Loading
+  | GameState_ContentReady
+  | GameState_VRReady
+type Temp = {} & Partial<GameState_ContentReady> & Partial<GameState_VRReady>
+
+let state: GameState = { stage: GameStage.UNINITIALIZED }
+const temp: Temp = {}
+
+const init = (canvas: HTMLCanvasElement) => {
+  temp.canvas = canvas
+  goto_Loading()
+}
+
+const goto_Loading = () => {
+  if (state.stage >= GameStage.LOADING) {
+    throw new Error('allready initialized')
+  }
+
+  if (!temp.canvas) {
+    throw new Error('canvas not set')
+  }
+
+  state = {
+    stage: GameStage.LOADING,
+    canvas: temp.canvas,
+  }
+
+  const engine = new Engine(state.canvas, true)
+  const scene = new Scene(engine)
+  const helper = scene.createDefaultVRExperience()
+  const contentPromise = addContent(scene)
+  console.log('contentPromise', contentPromise)
+
+  contentPromise.then(content => {
+    console.log('addContent done', content)
+
+    temp.sceneContent = content
+    goto_ContentReady()
+  })
+
+  helper.onControllerMeshLoadedObservable.add(registerController)
+
+  scene.enablePhysics()
+  scene.registerBeforeRender(update)
+  engine.runRenderLoop(() => {
+    scene.render()
+  })
+
+  console.log('goto_Loading', state)
+}
+
+const goto_ContentReady = () => {
+  if (state.stage >= GameStage.CONTENT_READY) {
+    return
+  }
+
+  if (!temp.sceneContent) {
+    return
+  }
+
+  state = {
+    ...(temp as any),
+    stage: GameStage.CONTENT_READY,
+  }
+
+  console.log('goto_ContentReady', state)
+}
+
+const goto_VRReady = () => {
+  if (state.stage >= GameStage.LOADING) {
+    return
+  }
+
+  if (!(temp.boardController && temp.handController)) {
+    return
+  }
+
+  state = {
+    ...(temp as any),
+    stage: GameStage.CONTENT_READY,
+  }
+}
+
+const update = () => {
+  if (state.stage >= GameStage.CONTENT_READY) {
+    updateGameState(state as GameState_ContentReady)
+  }
+}
+
+const updateGameState = (state: GameState_ContentReady) => {
+  // let deltaTime: number = 1 / _engine.getFps()
+  // const { position, quat } = boardState.getBoardState()
+  // boardTransform.position = position
+  // boardTransform.rotationQuaternion = quat
+}
+
+const getControlerState = (controller: WebVRController): ObjectState => {
+  return {
+    position: controller.devicePosition.clone(),
+    quat: controller.deviceRotationQuaternion.clone(),
+  }
+}
+
+const registerController = (controller: WebVRController) => {
+  if (controller.hand === 'left') {
+    temp.boardController = controller
+  }
+  if (controller.hand === 'right') {
+    temp.handController = controller
+  }
+  goto_VRReady()
+}
+
+export { init }
