@@ -32,9 +32,7 @@ const loadMesh = (
   rootUrl: string,
   sceneFilename: string,
   scene: BABYLON.Scene,
-  options: LoadModelOptions = {
-    autoAdd: true,
-  }
+  autoAdd: boolean = false
 ): Promise<BABYLON.Mesh> => {
   return BABYLON.SceneLoader.LoadAssetContainerAsync(
     rootUrl,
@@ -42,11 +40,7 @@ const loadMesh = (
     scene
   ).then(assetContainer => {
     const mesh = assetContainer.meshes[0] as BABYLON.Mesh
-    if (options.scale) {
-      mesh.scaling.scaleInPlace(options.scale)
-    }
-
-    if (options.autoAdd !== false) {
+    if (autoAdd) {
       scene.addMesh(mesh)
     }
     return mesh
