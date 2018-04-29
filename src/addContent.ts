@@ -180,8 +180,6 @@ const addContent = async (scene: Scene): Promise<SceneContent> => {
   headContainer.position.y = USER_HEIGHT
 
   const ground = addGround(scene)
-  ground.parent = newWorldCenter
-  ground.parent = newWorldCenter
   const skyBox = addSkybox('/assets/skybox/skybox', scene)
   const light = addLight(scene)
 

@@ -66,22 +66,24 @@ const init = async (canvas: HTMLCanvasElement) => {
 
   let defaultBoardRotation = Vector3.Zero()
   const calibrateState = () => {
-    const defaultRotation = boardController.deviceRotationQuaternion.toEulerAngles()
-    console.log('defaultRotation', defaultRotation)
+    defaultBoardRotation = boardController.deviceRotationQuaternion.toEulerAngles()
+    console.log('defaultBoardRotation', defaultBoardRotation)
 
-    content.ground.position.y = boardController.devicePosition.y - 0.04 - 0.12
-    
-    // content.newWorldCenter.position = boardController.devicePosition
-    // content.newWorldCenter.translate(Axis.Z, 0.4, Space.LOCAL)
-    // content.newWorldCenter.translate(Axis.Y, -0.04 - 0.12, Space.LOCAL)
-    // content.newWorldCenter.rotation.y = defaultRotation.y
-    // content.ground.parent = content.newWorldCenter
+    // content.ground.position.y = boardController.devicePosition.y - 0.04 - 0.12
+
+    content.newWorldCenter.position = boardController.devicePosition
+    content.newWorldCenter.translate(Axis.Z, 0.4, Space.LOCAL)
+    content.newWorldCenter.translate(Axis.Y, -0.04 - 0.12, Space.LOCAL)
+    content.newWorldCenter.rotation.y = defaultBoardRotation.y
+
+    content.ground.parent = content.newWorldCenter
 
     content.boardSurface.parent = boardController.mesh
     content.boardSurface.position = Vector3.Zero()
     content.boardSurface.rotation.x = -0.17
     content.boardSurface.translate(Axis.Z, 0.4, Space.LOCAL)
     content.boardSurface.translate(Axis.Y, -0.04, Space.LOCAL)
+    console.log('content.boardSurface', content.boardSurface.position)
 
     // const defaultBoardState = {
     //   position: handController
@@ -129,6 +131,19 @@ const init = async (canvas: HTMLCanvasElement) => {
   const content = await addContent(scene)
 
   scene.registerBeforeRender(() => {
+    const currentBoardRotation = boardController.deviceRotationQuaternion.toEulerAngles()
+
+
+    const turnAngle = 0.001
+    // const turnAngle = (currentBoardRotation.z - defaultBoardRotation.z) / 50
+
+    // const posDelta = content.ground.position
+    //   .subtract(boardController.mesh.position)
+    //   .subtract(content.boardSurface.position)
+    // console.log(posDelta)
+
+    // content.ground.rotation(ZERO_VECTOR3, Axis.Y, turnAngle)
+
     // const headRotation =
     //   ((headRotationQuat.toEulerAngles().y - defaultHeadRotation) /
     //     (Math.PI * 2)) %
@@ -144,16 +159,11 @@ const init = async (canvas: HTMLCanvasElement) => {
     // // console.log('directionAxis', directionAxis)
     // content.ground.translate(directionAxis, -speed, Space.WORLD)
 
-    content.ground.translate(Axis.Z, -speed, Space.WORLD)
+    content.ground.translate(Axis.Z, -speed, Space.LOCAL)
 
-    const currentBoardRotation = boardController.deviceRotationQuaternion.toEulerAngles()
-
-    const turnAngle = (currentBoardRotation.z - defaultBoardRotation.z) / 50
     // (currentBoardRotation.z - defaultBoardRotation.z) / 50 * Math.abs(speed)
 
     // console.log('turnAngle', turnAngle)
-
-    content.ground.rotation(ZERO_VECTOR3, Axis.Y, turnAngle)
     // const y = content.ground.rotationQuaternion.toEulerAngles().y
     // console.log('y', y)
 
