@@ -208,16 +208,25 @@ const getNewSpeed = (
   power: number,
   timeDiff: number
 ): number => {
-  let speed = currentSpeed + ACCELERATION_STEP * power * direction * timeDiff
-
-  if (power < 1) {
-    const slowdown = Math.min(
-      speed,
-      (1 - power) * SLOWDOWN_STEP * Math.sign(speed) * timeDiff
-    )
-    speed -= slowdown
+  let speed = currentSpeed
+  const slowdown = SLOWDOWN_STEP * (1 - power) * Math.sign(speed) * timeDiff
+  if(speed > 0) {
+    if(slowdown > speed) {
+      speed = 0
+    } else {
+      speed -= slowdown
+    }
+  } else if(speed < 0) {
+    if(slowdown < speed) {
+      speed = 0
+    } else {
+      speed -= slowdown
+    }
   }
-  return Math.max(-MAX_SPEED, Math.min(speed, MAX_SPEED))
+
+  speed += ACCELERATION_STEP * power * direction * timeDiff
+  speed =  Math.max(-MAX_SPEED, Math.min(speed, MAX_SPEED))
+  return speed
 }
 
 const getControllers = (
