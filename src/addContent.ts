@@ -27,6 +27,7 @@ const sceneBounds = {
   height: 1000,
 }
 
+const BOARD_HEIGHT = 0.12
 const USER_HEIGHT = 1.7
 
 const addLight = (scene: Scene): Light => {
@@ -132,7 +133,17 @@ const addContent = async (scene: Scene): Promise<SceneContent> => {
   const blue = new Color4(0, 0, 128)
   const green = new Color4(0, 0, 128, 0.2)
 
-
+  const newWorldCenter = MeshBuilder.CreateBox(
+    'initial-board-axis',
+    {
+      width: 0.01,
+      depth: 0.8,
+      height: 0.01,
+      faceColors: [blue, blue, blue, blue, blue, blue],
+    },
+    scene
+  )
+  newWorldCenter.isVisible = false
 
   const boardSurface = MeshBuilder.CreateBox(
     'board-surface',
@@ -168,9 +179,9 @@ const addContent = async (scene: Scene): Promise<SceneContent> => {
   headContainer.parent = human
   headContainer.position.y = USER_HEIGHT
 
-
-
   const ground = addGround(scene)
+  ground.parent = newWorldCenter
+  ground.parent = newWorldCenter
   const skyBox = addSkybox('/assets/skybox/skybox', scene)
   const light = addLight(scene)
 
@@ -178,6 +189,7 @@ const addContent = async (scene: Scene): Promise<SceneContent> => {
     ground,
     skyBox,
     light,
+    newWorldCenter,
     boardSurface,
     human,
     humanBody,
@@ -186,13 +198,14 @@ const addContent = async (scene: Scene): Promise<SceneContent> => {
 }
 
 export interface SceneContent {
-  ground: Mesh
-  skyBox: Mesh
-  light: Light
+  newWorldCenter: Mesh
   boardSurface: Mesh
   human: TransformNode
   humanBody: Mesh
   headContainer: TransformNode
+  ground: Mesh
+  skyBox: Mesh
+  light: Light
 }
 
 export default addContent

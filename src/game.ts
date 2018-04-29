@@ -64,39 +64,45 @@ const init = async (canvas: HTMLCanvasElement) => {
   const helper = scene.createDefaultVRExperience()
   const { handController, boardController } = await getControllers(helper)
 
+  let defaultBoardRotation = Vector3.Zero()
   const calibrateState = () => {
-    content.ground.position.y = boardController.devicePosition.y - 0.12
+    const defaultRotation = boardController.deviceRotationQuaternion.toEulerAngles()
+    console.log('defaultRotation', defaultRotation)
+
+    content.ground.position.y = boardController.devicePosition.y - 0.04 - 0.12
+    
+    // content.newWorldCenter.position = boardController.devicePosition
+    // content.newWorldCenter.translate(Axis.Z, 0.4, Space.LOCAL)
+    // content.newWorldCenter.translate(Axis.Y, -0.04 - 0.12, Space.LOCAL)
+    // content.newWorldCenter.rotation.y = defaultRotation.y
+    // content.ground.parent = content.newWorldCenter
 
     content.boardSurface.parent = boardController.mesh
     content.boardSurface.position = Vector3.Zero()
     content.boardSurface.rotation.x = -0.17
     content.boardSurface.translate(Axis.Z, 0.4, Space.LOCAL)
     content.boardSurface.translate(Axis.Y, -0.04, Space.LOCAL)
+
+    // const defaultBoardState = {
+    //   position: handController
+    //     ? handController.devicePosition.clone()
+    //     : Vector3.Zero(),
+    //   rotationQuaternion: boardController
+    //     ? boardController.deviceRotationQuaternion.clone()
+    //     : Quaternion.Zero(),
+    // }
+
+    // const defaultHeadState = {
+    //   position: helper.webVRCamera.devicePosition.clone(),
+    //   rotationQuaternion: helper.webVRCamera.deviceRotationQuaternion.clone(),
+    // }
+    // console.log('defaultBoardState', defaultBoardState)
+    // console.log('defaultHeadState', defaultHeadState)
+
+    // const defaultBoardRotation = defaultBoardState.rotationQuaternion.toEulerAngles()
+    //   .y
+    // const defaultHeadRotation = defaultBoardRotation + Math.PI / 2
   }
-
-  const headRotationQuat = helper.webVRCamera.deviceRotationQuaternion
-  const headPos = helper.webVRCamera.devicePosition
-
-  console.log('boardController', boardController)
-
-  const defaultBoardState = {
-    position: handController
-      ? handController.devicePosition.clone()
-      : Vector3.Zero(),
-    rotationQuaternion: boardController
-      ? boardController.deviceRotationQuaternion.clone()
-      : Quaternion.Zero(),
-  }
-  const defaultHeadState = {
-    position: helper.webVRCamera.devicePosition.clone(),
-    rotationQuaternion: helper.webVRCamera.deviceRotationQuaternion.clone(),
-  }
-  console.log('defaultBoardState', defaultBoardState)
-  console.log('defaultHeadState', defaultHeadState)
-
-  const defaultBoardRotation = defaultBoardState.rotationQuaternion.toEulerAngles()
-    .y
-  const defaultHeadRotation = defaultBoardRotation + Math.PI / 2
 
   if (handController) {
     handController.onTriggerStateChangedObservable.add(button => {
@@ -108,6 +114,7 @@ const init = async (canvas: HTMLCanvasElement) => {
       }
     })
   }
+
   canvas.addEventListener('keydown', e => {
     if (e.keyCode === SPACE_KEYCODE) {
       keyboardPower = 1
@@ -120,57 +127,43 @@ const init = async (canvas: HTMLCanvasElement) => {
   })
 
   const content = await addContent(scene)
-  ;(window as any).content = content
-  helper.webVRCamera.inputs.clear()
-  // helper.webVRCamera.parent = content.headContainer
 
-  console.log({
-    position: handController
-      ? handController.devicePosition.clone()
-      : Vector3.Zero(),
-    rotationQuaternion: boardController
-      ? boardController.deviceRotationQuaternion.clone()
-      : Quaternion.Zero(),
-  })
-
-  const force = Vector3.Zero()
   scene.registerBeforeRender(() => {
-    // console.log({
-    //   position: helper.webVRCamera.devicePosition.clone(),
-    //   rotationQuaternion: helper.webVRCamera.deviceRotationQuaternion.clone(),
-    // })
-
-    // const velocity = content.boardFloor.physicsImpostor.getLinearVelocity()
-
     // const headRotation =
     //   ((headRotationQuat.toEulerAngles().y - defaultHeadRotation) /
     //     (Math.PI * 2)) %
     //   Math.PI
     // const direction = headRotation > 0 ? 1 : -1
+
     const direction = 1
     const power = Math.max(handPower, keyboardPower)
     const timeDiff = 16
     speed = getNewSpeed(speed, direction, power, timeDiff)
 
-    if (power) {
-      // console.log(content.boardFloor.rotation, helper.webVRCamera.rotation)
-      console.log('speed', direction, power, timeDiff, speed)
-      // console.log(
-      //   'helper.webVRCamera.globalPosition',
-      //   helper.webVRCamera.position,
-      //   content.headContainer.getAbsolutePosition()
-      // )
-    }
+    // const directionAxis = content.ground.getDirection(Axis.Z)
+    // // console.log('directionAxis', directionAxis)
+    // content.ground.translate(directionAxis, -speed, Space.WORLD)
 
-    // const turnAngle = Math.PI / 100 * power
+    content.ground.translate(Axis.Z, -speed, Space.WORLD)
 
-    // content.boardFloor.rotation.y += turnAngle
-    
-    content.ground.translate(Axis.Z, -speed, Space.LOCAL)
+    const currentBoardRotation = boardController.deviceRotationQuaternion.toEulerAngles()
 
-    // helper.webVRCamera.rotationQuaternion = Quaternion.FromRotationMatrix(
-    //   Matrix.RotationY(content.boardFloor.rotation.y)
+    const turnAngle = (currentBoardRotation.z - defaultBoardRotation.z) / 50
+    // (currentBoardRotation.z - defaultBoardRotation.z) / 50 * Math.abs(speed)
+
+    // console.log('turnAngle', turnAngle)
+
+    content.ground.rotation(ZERO_VECTOR3, Axis.Y, turnAngle)
+    // const y = content.ground.rotationQuaternion.toEulerAngles().y
+    // console.log('y', y)
+
+    // content.ground.translate(
+    //   content.ground.rotationQuaternion.toEulerAngles(),
+    //   -speed,
+    //   Space.WORLD
     // )
+    // const delta = content.ground.getDirection().scaleInPlace(-speed)
+    // content.ground.position.addInPlace(delta)
   })
 
   engine.runRenderLoop(() => {
@@ -178,8 +171,8 @@ const init = async (canvas: HTMLCanvasElement) => {
   })
 }
 
-const MAX_SPEED = 1 // meters in second
-const ACCELERATION_TIME = 5 // seconds
+const MAX_SPEED = 0.25 // meters in second
+const ACCELERATION_TIME = 10 // seconds
 const ACCELERATION_STEP = MAX_SPEED / ACCELERATION_TIME / 1000 // speed increase in ms
 const SLOWDOWN_STEP = ACCELERATION_STEP / 2 // speed slowdown in ms
 
