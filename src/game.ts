@@ -142,9 +142,7 @@ const init = async (canvas: HTMLCanvasElement) => {
     const direction = headYaw < Math.PI ? 1 : -1
     const power = Math.max(handPower, keyboardPower)
     const timeDiff = 16
-    speed = getNewSpeed(speed, direction, power, timeDiff)
-    console.log('speed', speed)
-    
+    speed = getNewSpeed(speed, direction, power, timeDiff)    
 
     // const directionAxis = content.ground.getDirection(Axis.Z)
     // // console.log('directionAxis', directionAxis)

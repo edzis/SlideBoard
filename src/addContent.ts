@@ -129,6 +129,7 @@ const addContent = async (scene: Scene): Promise<SceneContent> => {
   // await loadMesh('/assets/skateboard/', 'CUPIC_SKATEBOARD.obj', scene)
   // console.log('loadMesh done')
 
+  const darkRed = new Color4(64, 0, 0, 0.1)
   const red = new Color4(128, 0, 0, 0.1)
   const blue = new Color4(0, 0, 128)
   const green = new Color4(0, 0, 128, 0.2)
@@ -151,10 +152,23 @@ const addContent = async (scene: Scene): Promise<SceneContent> => {
       width: 0.4,
       depth: 0.8,
       height: 0.02,
+      faceColors: [darkRed, darkRed, darkRed, darkRed, darkRed, darkRed],
+    },
+    scene
+  )
+
+  const boardExtension = MeshBuilder.CreateBox(
+    'board-extension',
+    {
+      width: 0.4,
+      depth: 0.8 * 5,
+      height: 0.02,
       faceColors: [red, red, red, red, red, red],
     },
     scene
   )
+  boardExtension.parent = boardSurface
+  boardExtension.position.y = -0.02
   // boardSurface.isVisible = false
 
   const human = new TransformNode('human', scene)
