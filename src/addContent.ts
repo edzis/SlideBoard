@@ -17,28 +17,20 @@ import {
   SpotLight,
   SceneLoader,
   TerrainMaterial,
+  TransformNode,
 } from 'babylonjs'
 import { mapValues } from 'lodash'
 
-export interface SceneContent {
-  ground: Mesh
-  skyBox: Mesh
-  light: Light
-  board: Mesh
+const sceneBounds = {
+  depth: 1000,
+  width: 1000,
+  height: 1000,
 }
 
-const sceneBounds = {
-  depth: 100,
-  width: 100,
-  height: 100,
-}
+const USER_HEIGHT = 1.7
 
 const addLight = (scene: Scene): Light => {
-  var light = new DirectionalLight(
-    'light1',
-    new Vector3(0, -1, 0),
-    scene
-  )
+  var light = new DirectionalLight('light1', new Vector3(0, -1, 0), scene)
   // var light = new SpotLight(
   //   'light1',
   //   new Vector3(0, 0, 0),
@@ -49,26 +41,6 @@ const addLight = (scene: Scene): Light => {
   // )
   light.intensity = 0.7
   return light
-}
-
-const addBoard = (scene: Scene): Mesh => {
-  return MeshBuilder.CreateBox(
-    'board',
-    {
-      width: 1,
-      height: 0.02,
-      depth: 0.4,
-      faceColors: [
-        new Color4(128, 0, 0),
-        new Color4(128, 0, 0),
-        new Color4(128, 0, 0),
-        new Color4(128, 0, 0),
-        new Color4(128, 0, 0),
-        new Color4(128, 0, 0),
-      ],
-    },
-    scene
-  )
 }
 
 const addSkybox = (rootUrl: string, scene: Scene): Mesh => {
@@ -153,23 +125,74 @@ const loadMesh = (
 const addContent = async (scene: Scene): Promise<SceneContent> => {
   console.log('addContent')
 
-  await loadMesh('/assets/skateboard/', 'CUPIC_SKATEBOARD.obj', scene)
-  console.log('loadMesh done')
+  // await loadMesh('/assets/skateboard/', 'CUPIC_SKATEBOARD.obj', scene)
+  // console.log('loadMesh done')
+
+  const red = new Color4(128, 0, 0, 0.1)
+  const blue = new Color4(0, 0, 128)
+  const green = new Color4(0, 0, 128, 0.2)
+
+
+
+  const boardSurface = MeshBuilder.CreateBox(
+    'board-surface',
+    {
+      width: 0.4,
+      depth: 0.8,
+      height: 0.02,
+      faceColors: [red, red, red, red, red, red],
+    },
+    scene
+  )
+  // boardSurface.isVisible = false
+
+  const human = new TransformNode('human', scene)
+  human.parent = boardSurface
+  human.rotation.y = Math.PI / 2
+
+  const humanBody = MeshBuilder.CreateBox(
+    'human',
+    {
+      width: 0.3,
+      height: USER_HEIGHT,
+      depth: 0.2,
+      faceColors: [green, green, green, green, green, green],
+    },
+    scene
+  )
+  humanBody.parent = human
+  humanBody.position.y = USER_HEIGHT / 2
+  humanBody.isVisible = false
+
+  const headContainer = new TransformNode('head-container')
+  headContainer.parent = human
+  headContainer.position.y = USER_HEIGHT
+
+
 
   const ground = addGround(scene)
   const skyBox = addSkybox('/assets/skybox/skybox', scene)
   const light = addLight(scene)
-  const board = addBoard(scene)
-
-  new PhysicsImpostor(ground, PhysicsImpostor.MeshImpostor)
-  new PhysicsImpostor(skyBox, PhysicsImpostor.MeshImpostor)
 
   return {
     ground,
     skyBox,
     light,
-    board,
+    boardSurface,
+    human,
+    humanBody,
+    headContainer,
   }
+}
+
+export interface SceneContent {
+  ground: Mesh
+  skyBox: Mesh
+  light: Light
+  boardSurface: Mesh
+  human: TransformNode
+  humanBody: Mesh
+  headContainer: TransformNode
 }
 
 export default addContent
