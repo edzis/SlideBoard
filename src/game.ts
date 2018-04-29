@@ -133,43 +133,18 @@ const init = async (canvas: HTMLCanvasElement) => {
   scene.registerBeforeRender(() => {
     const currentBoardRotation = boardController.deviceRotationQuaternion.toEulerAngles()
 
-    // const turnAngle = 0.001
-    // const turnAngle = (currentBoardRotation.z - defaultBoardRotation.z) / 50
-
-    // const posDelta = content.ground.position
-    //   .subtract(boardController.mesh.position)
-    //   .subtract(content.boardSurface.position)
-    // console.log(posDelta)
-
-    // console.log('content.ground.position', content.newWorldCenter.position)
-    // content.ground.rotateAround(
-    //   content.ground.position.negate(),
-    //   Axis.Y,
-    //   turnAngle
-    // )
-
     const headRotation = helper.webVRCamera.deviceRotationQuaternion.toEulerAngles()
 
-    const headYaw = ((headRotation.y - currentBoardRotation.y + Math.PI/2) + (Math.PI * 2)) % (Math.PI * 2)
-    // 0 - 0.5 positive
-    // 0.5 - 1.5 negative
-    // 1.5 -2 positive
-    console.log('geadYaw', headYaw, headRotation.y, currentBoardRotation.y)
-    
+    const headYaw =
+      (headRotation.y - currentBoardRotation.y + Math.PI / 2 + Math.PI * 2) %
+      (Math.PI * 2)
 
-
-    // ;((headRotationQuat.toEulerAngles().y - defaultHeadRotation) /
-    //   (Math.PI * 2)) %
-    //   Math.PI
-    // const direction = headRotation > 0 ? 1 : -1
-
-    // by defauult move forward
-    // from Math.MI
-
-    const direction = (headYaw < Math.PI) ? 1 : -1
+    const direction = headYaw < Math.PI ? 1 : -1
     const power = Math.max(handPower, keyboardPower)
     const timeDiff = 16
     speed = getNewSpeed(speed, direction, power, timeDiff)
+    console.log('speed', speed)
+    
 
     // const directionAxis = content.ground.getDirection(Axis.Z)
     // // console.log('directionAxis', directionAxis)
@@ -197,10 +172,10 @@ const init = async (canvas: HTMLCanvasElement) => {
   })
 }
 
-const MAX_SPEED = 0.25 // meters in second
-const ACCELERATION_TIME = 10 // seconds
+const MAX_SPEED = 0.05 // meters in second
+const ACCELERATION_TIME = 4 // seconds
 const ACCELERATION_STEP = MAX_SPEED / ACCELERATION_TIME / 1000 // speed increase in ms
-const SLOWDOWN_STEP = ACCELERATION_STEP / 2 // speed slowdown in ms
+const SLOWDOWN_STEP = ACCELERATION_STEP / 4 // speed slowdown in ms
 
 const getNewSpeed = (
   currentSpeed: number,
@@ -209,23 +184,16 @@ const getNewSpeed = (
   timeDiff: number
 ): number => {
   let speed = currentSpeed
-  const slowdown = SLOWDOWN_STEP * (1 - power) * Math.sign(speed) * timeDiff
-  if(speed > 0) {
-    if(slowdown > speed) {
-      speed = 0
-    } else {
-      speed -= slowdown
-    }
-  } else if(speed < 0) {
-    if(slowdown < speed) {
-      speed = 0
-    } else {
-      speed -= slowdown
-    }
+  const speedSign = Math.sign(speed)
+  const slowdown = SLOWDOWN_STEP * (1 - power) * speedSign * timeDiff
+  if (slowdown > speed * speedSign) {
+    speed = 0
+  } else {
+    speed -= slowdown
   }
 
   speed += ACCELERATION_STEP * power * direction * timeDiff
-  speed =  Math.max(-MAX_SPEED, Math.min(speed, MAX_SPEED))
+  speed = Math.max(-MAX_SPEED, Math.min(speed, MAX_SPEED))
   return speed
 }
 
