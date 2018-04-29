@@ -133,8 +133,7 @@ const init = async (canvas: HTMLCanvasElement) => {
   scene.registerBeforeRender(() => {
     const currentBoardRotation = boardController.deviceRotationQuaternion.toEulerAngles()
 
-
-    const turnAngle = 0.001
+    // const turnAngle = 0.001
     // const turnAngle = (currentBoardRotation.z - defaultBoardRotation.z) / 50
 
     // const posDelta = content.ground.position
@@ -142,15 +141,32 @@ const init = async (canvas: HTMLCanvasElement) => {
     //   .subtract(content.boardSurface.position)
     // console.log(posDelta)
 
-    // content.ground.rotation(ZERO_VECTOR3, Axis.Y, turnAngle)
+    // console.log('content.ground.position', content.newWorldCenter.position)
+    // content.ground.rotateAround(
+    //   content.ground.position.negate(),
+    //   Axis.Y,
+    //   turnAngle
+    // )
 
-    // const headRotation =
-    //   ((headRotationQuat.toEulerAngles().y - defaultHeadRotation) /
-    //     (Math.PI * 2)) %
+    const headRotation = helper.webVRCamera.deviceRotationQuaternion.toEulerAngles()
+
+    const headYaw = ((headRotation.y - currentBoardRotation.y + Math.PI/2) + (Math.PI * 2)) % (Math.PI * 2)
+    // 0 - 0.5 positive
+    // 0.5 - 1.5 negative
+    // 1.5 -2 positive
+    console.log('geadYaw', headYaw, headRotation.y, currentBoardRotation.y)
+    
+
+
+    // ;((headRotationQuat.toEulerAngles().y - defaultHeadRotation) /
+    //   (Math.PI * 2)) %
     //   Math.PI
     // const direction = headRotation > 0 ? 1 : -1
 
-    const direction = 1
+    // by defauult move forward
+    // from Math.MI
+
+    const direction = (headYaw < Math.PI) ? 1 : -1
     const power = Math.max(handPower, keyboardPower)
     const timeDiff = 16
     speed = getNewSpeed(speed, direction, power, timeDiff)
